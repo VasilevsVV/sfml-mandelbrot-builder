@@ -11,9 +11,10 @@ project(sfml-mandelbrot-builder)
 # create target
 set(EXECUTABLE_NAME mandelbrot-builder)
 set(EXECUTABLE_SOURCE
-    main.cpp)
-
+    main.cpp
+    renderer.h)
 add_executable(${EXECUTABLE_NAME} ${EXECUTABLE_SOURCE})
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")
 
 # find and link SFML
 find_package(SFML 2 COMPONENTS system window graphics REQUIRED)
