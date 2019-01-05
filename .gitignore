@@ -33,3 +33,5 @@
 
 # Our executable file
 *.run
+.vscode/launch.json
+.vscode/settings.json
