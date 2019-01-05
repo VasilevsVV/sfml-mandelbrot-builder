@@ -1,7 +1,7 @@
 PROG_NAME=mandel.run	
 
 all:
-	g++ main.cpp -o ${PROG_NAME} -lsfml-graphics -lsfml-window -lsfml-system
+	g++ main.cpp renderer.h -o ${PROG_NAME} -pthread -lsfml-graphics -lsfml-window -lsfml-system
 
 
 clean:
