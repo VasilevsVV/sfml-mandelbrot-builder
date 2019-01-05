@@ -30,3 +30,6 @@
 *.exe
 *.out
 *.app
+
+# Our executable file
+*.run
