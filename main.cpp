@@ -11,10 +11,11 @@ int main()
     image->create(window.getSize().x, window.getSize().y, sf::Color::Black);
 
     AsyncMandelbrotRenderer renderer(image);
-    ImageCoords img { {0, 0}, window.getSize() };
-    PaneCoords pane { {-2.0, 1.0}, {-1.5, 1.5} };
+    ImageCoords img{{0, 0}, window.getSize()};
+    PaneCoords pane{{-2.0, 1.0}, {-1.5, 1.5}};
 
     sf::Texture texture;
+    texture.create(window.getSize().x, window.getSize().y);
     sf::Sprite sprite;
 
     while (window.isOpen())
@@ -43,4 +44,3 @@ int main()
 
     return 0;
 }
-
