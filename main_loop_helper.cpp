@@ -36,3 +36,32 @@ void MainLoopHelper::setDisplayRectEnd(sf::Vector2f pos)
     auto rectPos = region_selection_rect.getPosition();
     region_selection_rect.setSize({pos.x - rectPos.x, pos.y - rectPos.y});
 }
+
+Rectangle<float> MainLoopHelper::getSelectedRegion()
+{
+    Rectangle<float> res;
+    auto pos = region_selection_rect.getPosition();
+    auto size = region_selection_rect.getSize();
+    if (size.x >= 0)
+    {
+        res.topleft.x = pos.x;
+        res.bottomright.x = pos.x + size.x;
+    }
+    else
+    {
+        res.topleft.x = pos.x + size.x;
+        res.bottomright.x = pos.x;
+    }
+
+    if (size.y >= 0)
+    {
+        res.topleft.y = pos.y;
+        res.bottomright.y = pos.y + size.y;
+    }
+    else
+    {
+        res.topleft.y = pos.y + size.y;
+        res.bottomright.y = pos.y;
+    }
+    return res;
+}

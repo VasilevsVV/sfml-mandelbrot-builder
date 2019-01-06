@@ -1,7 +1,6 @@
 #ifndef MAIN_CPP
 #define MAIN_CPP
 
-#include "renderer.h"
 #include "main_loop_helper.h"
 
 int main()

@@ -4,6 +4,7 @@
 #include <SFML/Graphics.hpp>
 #include <memory>
 #include <math.h>
+#include "renderer.h"
 
 class MainLoopHelper
 {
@@ -19,6 +20,7 @@ class MainLoopHelper
     void displayAuxiliaryEntities();
     void setDisplayRectStart(sf::Vector2f pos);
     void setDisplayRectEnd(sf::Vector2f pos);
+    Rectangle<float> getSelectedRegion();
 };
 
 #endif //HELPER_H
