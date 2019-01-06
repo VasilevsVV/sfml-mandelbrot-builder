@@ -3,12 +3,15 @@
 
 struct BigInt {
   BigInt(int value);
+  BigInt(int value1, int value2);
+  BigInt(int value1, int value2, int value3);
   ~BigInt();
 
   BigInt operator+(const BigInt& y);
   //BigInt operator*(const BigInt& y);
 
   bool operator==(const BigInt& x);
+  bool operator!=(const BigInt& x);
   bool operator<(const BigInt& x);
   bool operator>(const BigInt& x);
   bool operator<=(const BigInt& x);
