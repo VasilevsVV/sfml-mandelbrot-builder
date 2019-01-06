@@ -8,6 +8,8 @@ endif()
 
 project(sfml-mandelbrot-builder)
 
+set(CMAKE_CXX_STANDARD 14)
+
 # create target
 set(EXECUTABLE_NAME mandelbrot-builder)
 set(EXECUTABLE_SOURCE
@@ -18,6 +20,7 @@ set(EXECUTABLE_SOURCE
     main.cpp
     main_loop_helper.cpp
     main_loop_helper.h
+    ctpl_stl.h
     )
 
 add_executable(${EXECUTABLE_NAME} ${EXECUTABLE_SOURCE})

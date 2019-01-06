@@ -10,6 +10,7 @@ int main()
 {
     sf::RenderWindow *window = new sf::RenderWindow(sf::VideoMode(800, 600), "SFML works!");
 
+    // using Renderer = ThreadedMandelbrotRenderer<double>;
     using Renderer = AsyncMandelbrotRenderer<double>;
     using PaneCoords =  Renderer::PaneCoords;
     using ImageCoords = Renderer::ImageCoords;
@@ -41,10 +42,14 @@ int main()
         }
 
         // render to image
-
+        // auto future = renderer.render_task_add(img, pane, 1000);
         auto future = renderer.render_async(img, pane, 1000);
+
         window->clear();
 
+        // wait until timeout
+        // future.wait_for(std::chrono::miliseconds(1000));
+        // renderer.cancel_all();
         texture.update(future.get());
 
         window->draw(sprite);

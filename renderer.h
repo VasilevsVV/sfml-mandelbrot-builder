@@ -7,6 +7,10 @@
 #include <memory>
 #include <future>
 #include <cassert>
+#include <thread>
+#include <atomic>
+
+#include "ctpl_stl.h"
 
 namespace {
 // Return value scaled from [x_min, x_max] to [a,b]
@@ -121,14 +125,25 @@ public:
     sf::Image render_simple(const ImageCoords& world_coordinates,
                             const Rectangle<PaneCoordT>& pane_coordinates,
                             int N = 10000) {
+        enable_all();
         return render_fn(world_coordinates,
                          pane_coordinates,
                          N);
     }
 
+    // cancel the rendering threads
+    void cancel_all() {
+        _is_rendering = false;
+    }
+
+    // enable the rendering threads
+    void enable_all() {
+        _is_rendering = true;
+    }
+
 protected:
     BaseMandelbrotRenderer(const PaletteFn& palette)
-        : _palette(palette) {}
+        : _palette(palette), _is_rendering(true) {}
 
     // Calculate the color of (x,y) point of the fractal
     sf::Color get_color_for_coord(PaneCoordT x, PaneCoordT y, int N) {
@@ -155,6 +170,9 @@ protected:
 
         return _palette(i, N);
     }
+
+    // used to stop the render from another thread
+    std::atomic<bool> _is_rendering;
 
     // Render into separate image
     // so we can sync the drawing to the shared image
@@ -193,6 +211,15 @@ protected:
                                    world_img_y - img_min_y,
                                    color);
             }
+
+            // save some unnesessary checks
+            if(!_is_rendering) {
+                sf::Image blank_image;
+                new_image.create(img_max_x - img_min_x,
+                                 img_max_y - img_min_y);
+
+                return blank_image;
+            }
         }
 
         return new_image;
@@ -203,7 +230,7 @@ protected:
 //!
 //! render_async() returns a future object.
 //! With it you can wait for execution to complete with std::future::wait()
-//! or at the end of the scope.
+//! or at the end of the scope and get the image with std::future::get().
 //!
 //! This allows for the most simple parallel execution.
 template <typename PaneCoordT>
@@ -230,5 +257,50 @@ public:
     }
 };
 
+
+//! Renders requested task in a thread pool.
+//!
+//! render_add_task() returns a future object.
+//! With it you can wait for execution to complete with std::future::wait()
+//! or at the end of the scope and get the image with std::future::get().
+//!
+//! Thread pool allows to eliminate the cost of creating new threads
+//! every call while still executing in parallel.
+//!
+//! NOTE: this is very slow in debug!
+template <typename PaneCoordT>
+class ThreadedMandelbrotRenderer
+        : public BaseMandelbrotRenderer<PaneCoordT>
+{
+    using Base = BaseMandelbrotRenderer<PaneCoordT>;
+    static constexpr auto n_threads = 8;
+
+    ctpl::thread_pool _pool;
+
+public:
+    using ImageCoords = typename Base::ImageCoords;
+    using PaneCoords = typename Base::PaneCoords;
+
+    ThreadedMandelbrotRenderer(const PaletteFn& palette = ::palette::simple)
+        : Base(palette), _pool(n_threads) {}
+
+    // Add task to the thread pool
+    auto render_task_add(const ImageCoords& image_coordinates,
+                        const PaneCoords& pane_coordinates,
+                        int N) {
+        Base::enable_all();
+        return _pool.push([&] (int /* id */) {
+            return this->render_fn(image_coordinates,
+                                   pane_coordinates,
+                                   N); });
+    }
+
+    // Wait for all computing threads to finish and stop all threads
+    // if wait is true waits  for all remaining tasks to complete
+    // otherwise the queue is cleared without running them
+    void stop_all(bool wait = true) {
+        _pool.stop(wait);
+    }
+};
 
 #endif // RENDERER_H
