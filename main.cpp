@@ -4,21 +4,27 @@
 #include "main_loop_helper.h"
 #include "event_helper.h"
 
+#include "renderer.h"
+
 int main()
 {
     sf::RenderWindow *window = new sf::RenderWindow(sf::VideoMode(800, 600), "SFML works!");
 
-    // Render variables
-    std::shared_ptr<sf::Image> image = std::make_shared<sf::Image>();
-    image->create(window->getSize().x, window->getSize().y, sf::Color::Black);
-    AsyncMandelbrotRenderer renderer(image);
-    ImageCoords img{{0, 0}, window->getSize()};
-    PaneCoords pane{{-2.0, 1.0}, {-1.5, 1.5}};
+    using Renderer = AsyncMandelbrotRenderer<double>;
+    using PaneCoords =  Renderer::PaneCoords;
+    using ImageCoords = Renderer::ImageCoords;
+
+    Renderer renderer;
+    ImageCoords img { {0, 0}, window->getSize() };
+    PaneCoords pane { {-2.25, -1.5}, { 0.75, 1.5 } };
+
+    renderer.set_palette(palette::grayscale);
 
     // Texture
     sf::Texture texture;
     texture.create(window->getSize().x, window->getSize().y);
-    sf::Sprite sprite;
+
+    sf::Sprite sprite(texture);
 
     // Initialization
 
@@ -35,15 +41,11 @@ int main()
         }
 
         // render to image
-        auto future = renderer.render_async(img, pane);
 
-        // ...
-
+        auto future = renderer.render_async(img, pane, 1000);
         window->clear();
-        future.wait();
 
-        texture.update(*image);
-        sprite.setTexture(texture);
+        texture.update(future.get());
 
         window->draw(sprite);
         helper->displayAuxiliaryEntities();
