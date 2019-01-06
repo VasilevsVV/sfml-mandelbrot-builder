@@ -20,6 +20,10 @@ int main()
     texture.create(window->getSize().x, window->getSize().y);
     sf::Sprite sprite;
 
+    // Initialization
+
+    MainLoopHelper helper(window);
+
     //Main loop
 
     while (window->isOpen())
@@ -55,7 +59,7 @@ int main()
         sprite.setTexture(texture);
 
         window->draw(sprite);
-        displayAuxiliaryEntities(window);
+        helper.displayAuxiliaryEntities();
         //window->draw(*region_selection_rect);
         window->display();
     }
