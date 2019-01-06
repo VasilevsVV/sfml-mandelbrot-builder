@@ -224,7 +224,7 @@ int main() {
   testBigIntEqual1();
   testBigIntCompare1();
   testBigIntSum();
-
+  cout << "All test passed!" << endl;
   return 0;
 }
 
