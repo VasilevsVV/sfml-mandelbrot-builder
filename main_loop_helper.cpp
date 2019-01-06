@@ -65,3 +65,13 @@ Rectangle<float> MainLoopHelper::getSelectedRegion()
     }
     return res;
 }
+
+void MainLoopHelper::togleRegionRect(bool state)
+{
+    display_region_rect = state;
+}
+
+bool MainLoopHelper::isRegionDisplayed()
+{
+    return display_region_rect;
+}
