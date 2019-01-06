@@ -6,7 +6,7 @@ main_loop_helper.o: main_loop_helper.h
 	g++ -c main_loop_helper.cpp
 
 all: clean main_loop_helper.o
-	g++ main.cpp main_loop_helper.o renderer.h event_helper.cpp -o ${PROG_NAME} -pthread -lsfml-graphics -lsfml-window -lsfml-system
+	g++ main.cpp main_loop_helper.o renderer.h event_helper.cpp big_int.cpp -o ${PROG_NAME} -pthread -lsfml-graphics -lsfml-window -lsfml-system
 
 
 clean:
