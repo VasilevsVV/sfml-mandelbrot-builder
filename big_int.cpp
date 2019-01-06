@@ -1,6 +1,7 @@
 #include "big_int.h"
 
 #include <iostream>
+#include <iomanip>
 #include <algorithm>
 #include <climits>
 #include <cstring>
@@ -33,6 +34,8 @@ unsigned int BigInt::getLength() const {
   return this->length;
 }
 
+/// Utils
+
 inline unsigned int
 getSign(unsigned int value) {
   asm ("sar %2, %0" : "=&r" (value) : "r" (value), "c" (INT_BITS));
@@ -52,6 +55,8 @@ bigIntAddWithCarry(unsigned int *result, unsigned int value1, unsigned int value
   (*result) = value1;
   return carry;
 }
+
+/// Arithmetic
 
 BigInt BigInt::operator+(const BigInt& y) {
   BigInt res;
@@ -83,6 +88,8 @@ BigInt BigInt::operator+(const BigInt& y) {
   return res;
 }
 
+/// Normalization
+
 void BigInt::normalize() {
   unsigned int nextDigit = this->value[this->length - 2];
   unsigned int signDigit = this->value[this->length - 1];
@@ -95,20 +102,60 @@ void BigInt::normalize() {
   }
 }
 
-std::ostream& operator <<(std::ostream &os, const BigInt &m) {
-  int length = m.getLength();
-  os << "[" << m.getValue()[0];
-  for (int i = 1; i < length; i++) {
-    os << ", " << m.getValue()[i];
-  }
-  os << "]";
-  return os;
+/// Compare
+
+bool BigInt::isNegative() const {
+  return *((int*) &this->value[this->length - 1]) < 0;
 }
 
-// int main() {
-//   BigInt a = BigInt(2147483647);
-//   BigInt b = BigInt(1);
+int BigInt::compare(const BigInt& other) {
+  bool isNeg1 = this->isNegative();
+  bool isNeg2 = other.isNegative();
+  if (isNeg1 != isNeg2) {
+    return isNeg1 ? -1 : 1;
+  } else if (this->length = other.length) {
+    for (int i = this->length - 1; i >= 0; i--) {
+      if (this->value[i] > other.value[i]) {
+        return 1;
+      } else if (this->value[i] < other.value[i]) {
+        return -1;
+      }
+    }
+    return 0;
+  } else if (this->length > other.length) {
+    return isNeg1 ? -1 : 1;
+  } else {
+    return isNeg1 ? 1 : -1;
+  }
+}
 
-//   cout << a + b << endl;
-//   return 0;
-// }
+bool BigInt::operator==(const BigInt& other) {
+  return this->compare(other) == 0;
+}
+
+bool BigInt::operator<(const BigInt& other) {
+  return this->compare(other) == -1;
+}
+
+bool BigInt::operator>(const BigInt& other) {
+  return this->compare(other) == 1;
+}
+
+bool BigInt::operator<=(const BigInt& other) {
+  return this->compare(other) < 1;
+}
+
+bool BigInt::operator>=(const BigInt& other) {
+  return this->compare(other) > -1;
+}
+
+/// Print
+
+std::ostream& operator <<(std::ostream &os, const BigInt &m) {
+  int length = m.getLength();
+  os << "0x";
+  for (int i = length - 1; i >= 0; i--) {
+    os << hex << setw(sizeof(int) * 2) << setfill('0') << m.getValue()[i];
+  }
+  return os;
+}

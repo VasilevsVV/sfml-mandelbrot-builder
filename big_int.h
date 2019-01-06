@@ -8,7 +8,13 @@ struct BigInt {
   BigInt operator+(const BigInt& y);
   //BigInt operator*(const BigInt& y);
 
-  //bool operator==(BigInt& x);
+  bool operator==(const BigInt& x);
+  bool operator<(const BigInt& x);
+  bool operator>(const BigInt& x);
+  bool operator<=(const BigInt& x);
+  bool operator>=(const BigInt& x);
+
+  bool isNegative() const;
 
   unsigned int *getValue() const;
   unsigned int getLength() const;
@@ -20,6 +26,7 @@ private:
   BigInt();
 
   void normalize();
+  int compare(const BigInt& x);
 };
 
 #endif
