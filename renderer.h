@@ -14,7 +14,8 @@ template <typename T_in, typename T_out>
 T_out scale(T_in x, T_in x_min, T_in x_max, T_out a, T_out b)
 {
     assert(x_min < x_max);
-    return ((b - a) * T_out(x - x_min)) / T_out(x_max - x_min);
+    assert(a < b);
+    return T_out((b - a) * (x - x_min) / (x_max - x_min)) + a;
 }
 
 // Return value scaled from [x_min, x_max] to [a,b] in reverse
@@ -136,9 +137,16 @@ protected:
 
         int i = 0;
         while( var_x_squared + var_y_squared < 4 && i < N) {
-            var_y = 2 * var_x * var_y + y;
-            var_x = var_x_squared - var_y_squared + x;
+            auto x_temp = var_x_squared - var_y_squared + x;
+            auto y_temp = 2 * var_x * var_y + y;
 
+            if (var_x == x_temp && var_y == y_temp) {
+                  i = N;
+                  break;
+            }
+
+            var_x = x_temp;
+            var_y = y_temp;
             var_x_squared = var_x * var_x;
             var_y_squared = var_y * var_y;
 
@@ -176,9 +184,9 @@ protected:
             {
                 // set mandelbrot value
                 PaneCoordT pane_x = ::scale(world_img_x, img_min_x, img_max_x,
-                                            pane_min_x, pane_min_y);
+                                            pane_min_x, pane_max_x);
                 PaneCoordT pane_y = ::scale(world_img_y, img_min_y, img_max_y,
-                                            pane_min_x, pane_min_y);
+                                            pane_min_y, pane_max_y);
 
                 sf::Color color = get_color_for_coord(pane_x, pane_y, N);
                 new_image.setPixel(world_img_x - img_min_x,

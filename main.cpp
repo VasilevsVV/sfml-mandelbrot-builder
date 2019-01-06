@@ -6,7 +6,7 @@
 
 int main()
 {
-    sf::RenderWindow window(sf::VideoMode(800, 600), "SFML works!");
+    sf::RenderWindow window(sf::VideoMode(800, 600), "Mandelbrot works!");
 
     using Renderer = AsyncMandelbrotRenderer<double>;
     using PaneCoords =  Renderer::PaneCoords;
@@ -14,7 +14,7 @@ int main()
 
     Renderer renderer;
     ImageCoords img { {0, 0}, window.getSize() };
-    PaneCoords pane { {-1.5, 1.5}, {-2.0, 1.0} };
+    PaneCoords pane { {-2.25, -1.5}, { 0.75, 1.5 } };
 
     renderer.set_palette(palette::grayscale);
 
@@ -33,8 +33,7 @@ int main()
         }
 
         // render to image
-        auto future = renderer.render_async(img, pane, 9000);
-
+        auto future = renderer.render_async(img, pane, 1000);
         window.clear();
 
         texture.update(future.get());
