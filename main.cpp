@@ -2,6 +2,7 @@
 #define MAIN_CPP
 
 #include "main_loop_helper.h"
+#include "event_helper.h"
 
 int main()
 {
@@ -21,7 +22,7 @@ int main()
 
     // Initialization
 
-    MainLoopHelper helper(window);
+    MainLoopHelper *helper = new MainLoopHelper(window);
 
     //Main loop
 
@@ -30,42 +31,7 @@ int main()
         sf::Event event;
         while (window->pollEvent(event))
         {
-            switch (event.type)
-            {
-            case sf::Event::Closed:
-                window->close();
-                break;
-            case sf::Event::MouseButtonPressed:
-                switch (event.key.code)
-                {
-                case sf::Mouse::Left:
-                    helper.togleRegionRect(true);
-                    helper.setDisplayRectStart(sf::Vector2f(event.mouseButton.x, event.mouseButton.y));
-                    helper.setDisplayRectEnd(sf::Vector2f(event.mouseButton.x, event.mouseButton.y));
-                    break;
-                case sf::Mouse::Right:
-                    break;
-                }
-                break;
-            case sf::Event::MouseButtonReleased:
-                switch (event.key.code)
-                {
-                case sf::Mouse::Left:
-                    helper.togleRegionRect(false);
-                    break;
-                case sf::Mouse::Right:
-                    break;
-                }
-                break;
-            case sf::Event::KeyPressed:
-                break;
-            case sf::Event::KeyReleased:
-                break;
-            case sf::Event::MouseMoved:
-                if (helper.isRegionDisplayed())
-                    helper.setDisplayRectEnd(sf::Vector2f(event.mouseMove.x, event.mouseMove.y));
-                break;
-            }
+            processEvent(window, event, helper);
         }
 
         // render to image
@@ -80,7 +46,7 @@ int main()
         sprite.setTexture(texture);
 
         window->draw(sprite);
-        helper.displayAuxiliaryEntities();
+        helper->displayAuxiliaryEntities();
         //window->draw(*region_selection_rect);
         window->display();
     }
