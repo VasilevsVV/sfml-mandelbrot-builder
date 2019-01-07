@@ -7,12 +7,9 @@
 #include <memory>
 #include <future>
 #include <cassert>
-#include <thread>
-#include <atomic>
 
-#include "ctpl_stl.h"
-
-namespace {
+namespace
+{
 // Return value scaled from [x_min, x_max] to [a,b]
 template <typename T_in, typename T_out>
 inline T_out scale(T_in x, T_in x_min, T_in x_max, T_out a, T_out b)
@@ -24,19 +21,22 @@ inline T_out scale(T_in x, T_in x_min, T_in x_max, T_out a, T_out b)
 
 // Return value scaled from [x_min, x_max] to [a,b] in reverse
 template <typename T_in, typename T_out>
-inline T_out inverse_scale(T_in x, T_in x_min, T_in x_max, T_out a, T_out b) {
+inline T_out inverse_scale(T_in x, T_in x_min, T_in x_max, T_out a, T_out b)
+{
     return a - scale(x, x_min, x_max, a, b);
 }
 
 // Linear Interpolation
 template <typename T, typename U>
-inline T lerp(T v0, T v1, U t) {
+inline T lerp(T v0, T v1, U t)
+{
     return T((1 - t) * v0 + t * v1);
 }
-}
+} // namespace
 
 template <typename T>
-struct Rectangle {
+struct Rectangle
+{
     sf::Vector2<T> topleft, bottomright;
 };
 
@@ -47,61 +47,70 @@ struct Rectangle {
 using PaletteFn = std::function<sf::Color(const int, const int)>;
 
 //! Sample Pallette functions
-namespace palette {
-namespace helper {
-inline sf::Color lerp_color(sf::Color a, sf::Color b, double factor) {
+namespace palette
+{
+namespace helper
+{
+inline sf::Color lerp_color(sf::Color a, sf::Color b, double factor)
+{
     return {
         lerp(a.r, b.r, factor),
         lerp(a.g, b.g, factor),
-        lerp(a.b, b.b, factor)
-    };
+        lerp(a.b, b.b, factor)};
 }
-}
-    inline sf::Color simple(const int i, const int N) {
-        if(i != N) {
-            return {0,0,0};
-        } else {
-            return {255,255,255};
-        }
+} // namespace helper
+inline sf::Color simple(const int i, const int N)
+{
+    if (i != N)
+    {
+        return {0, 0, 0};
     }
-
-    inline sf::Color grayscale(const int i, const int N) {
-        if( i != N ){
-            return { ::scale<int, sf::Uint8>(i, 0, N, 0, 255),
-                     ::scale<int, sf::Uint8>(i, 0, N, 0, 255),
-                     ::scale<int, sf::Uint8>(i, 0, N, 0, 255) };
-        } else {
-            return {0,0,0};
-        }
-
-    }
-
-    inline sf::Color ultra_fractal(const int i, const int N) {
-        // Ultra Fractal palette
-        const static std::array<sf::Color, 12> mapping {
-            sf::Color{25, 7, 26},
-            sf::Color{9, 1, 47},
-            sf::Color{0, 7, 100},
-            sf::Color{12, 44, 138},
-            sf::Color{24, 82, 177},
-            sf::Color{57, 125, 209},
-            sf::Color{211, 236, 248},
-            sf::Color{241, 233, 191},
-            sf::Color{248, 201, 95},
-            sf::Color{255, 170, 0},
-            sf::Color{204, 128, 0},
-            sf::Color{153, 87, 0}
-        };
-
-        const double value = ::scale<int, double>(i, 0, N, 0, mapping.size());
-        const int value_int = int(value);
-        const int colormap_begin = value_int % (mapping.size() - 1);
-        const double factor = value - value_int;
-
-        return helper::lerp_color(mapping[colormap_begin],
-                                  mapping[colormap_begin + 1], factor);
+    else
+    {
+        return {255, 255, 255};
     }
 }
+
+inline sf::Color grayscale(const int i, const int N)
+{
+    if (i != N)
+    {
+        return {::scale<int, sf::Uint8>(i, 0, N, 0, 255),
+                ::scale<int, sf::Uint8>(i, 0, N, 0, 255),
+                ::scale<int, sf::Uint8>(i, 0, N, 0, 255)};
+    }
+    else
+    {
+        return {0, 0, 0};
+    }
+}
+
+inline sf::Color ultra_fractal(const int i, const int N)
+{
+    // Ultra Fractal palette
+    const static std::array<sf::Color, 12> mapping{
+        sf::Color{25, 7, 26},
+        sf::Color{9, 1, 47},
+        sf::Color{0, 7, 100},
+        sf::Color{12, 44, 138},
+        sf::Color{24, 82, 177},
+        sf::Color{57, 125, 209},
+        sf::Color{211, 236, 248},
+        sf::Color{241, 233, 191},
+        sf::Color{248, 201, 95},
+        sf::Color{255, 170, 0},
+        sf::Color{204, 128, 0},
+        sf::Color{153, 87, 0}};
+
+    const double value = ::scale<int, double>(i, 0, N, 0, mapping.size());
+    const int value_int = int(value);
+    const int colormap_begin = value_int % (mapping.size() - 1);
+    const double factor = value - value_int;
+
+    return helper::lerp_color(mapping[colormap_begin],
+                              mapping[colormap_begin + 1], factor);
+}
+} // namespace palette
 
 //! Base renderer with Mandelbrot implementation
 //!
@@ -113,51 +122,45 @@ class BaseMandelbrotRenderer
 {
     PaletteFn _palette;
 
-public:
+  public:
     using ImageCoords = Rectangle<unsigned int>;
     using PaneCoords = Rectangle<PaneCoordT>;
 
-    void set_palette(const PaletteFn& palette) {
+    void set_palette(const PaletteFn &palette)
+    {
         _palette = palette;
     }
 
     // TODO: switch to vertex
-    sf::Image render_simple(const ImageCoords& world_coordinates,
-                            const Rectangle<PaneCoordT>& pane_coordinates,
-                            int N = 10000) {
-        enable_all();
+    sf::Image render_simple(const ImageCoords &world_coordinates,
+                            const Rectangle<PaneCoordT> &pane_coordinates,
+                            int N = 10000)
+    {
         return render_fn(world_coordinates,
                          pane_coordinates,
                          N);
     }
 
-    // cancel the rendering threads
-    void cancel_all() {
-        _is_rendering = false;
-    }
-
-    // enable the rendering threads
-    void enable_all() {
-        _is_rendering = true;
-    }
-
-protected:
-    BaseMandelbrotRenderer(const PaletteFn& palette)
-        : _palette(palette), _is_rendering(true) {}
+  protected:
+    BaseMandelbrotRenderer(const PaletteFn &palette)
+        : _palette(palette) {}
 
     // Calculate the color of (x,y) point of the fractal
-    sf::Color get_color_for_coord(PaneCoordT x, PaneCoordT y, int N) {
+    sf::Color get_color_for_coord(PaneCoordT x, PaneCoordT y, int N)
+    {
         PaneCoordT var_x = 0, var_y = 0;
         PaneCoordT var_x_squared = 0, var_y_squared = 0;
 
         int i = 0;
-        while( var_x_squared + var_y_squared < 4 && i < N) {
+        while (var_x_squared + var_y_squared < 4 && i < N)
+        {
             auto x_temp = var_x_squared - var_y_squared + x;
             auto y_temp = 2 * var_x * var_y + y;
 
-            if (var_x == x_temp && var_y == y_temp) {
-                  i = N;
-                  break;
+            if (var_x == x_temp && var_y == y_temp)
+            {
+                i = N;
+                break;
             }
 
             var_x = x_temp;
@@ -170,9 +173,6 @@ protected:
 
         return _palette(i, N);
     }
-
-    // used to stop the render from another thread
-    std::atomic<bool> _is_rendering;
 
     // Render into separate image
     // so we can sync the drawing to the shared image
@@ -194,11 +194,11 @@ protected:
         new_image.create(img_max_x - img_min_x,
                          img_max_y - img_min_y);
 
-        for(auto world_img_x = img_min_x;
-            world_img_x < img_max_x; ++world_img_x)
+        for (auto world_img_x = img_min_x;
+             world_img_x < img_max_x; ++world_img_x)
         {
-            for(auto world_img_y = img_min_y;
-                world_img_y < img_max_y; ++world_img_y)
+            for (auto world_img_y = img_min_y;
+                 world_img_y < img_max_y; ++world_img_y)
             {
                 // set mandelbrot value
                 PaneCoordT pane_x = ::scale(world_img_x, img_min_x, img_max_x,
@@ -211,15 +211,6 @@ protected:
                                    world_img_y - img_min_y,
                                    color);
             }
-
-            // save some unnesessary checks
-            if(!_is_rendering) {
-                sf::Image blank_image;
-                new_image.create(img_max_x - img_min_x,
-                                 img_max_y - img_min_y);
-
-                return blank_image;
-            }
         }
 
         return new_image;
@@ -230,7 +221,7 @@ protected:
 //!
 //! render_async() returns a future object.
 //! With it you can wait for execution to complete with std::future::wait()
-//! or at the end of the scope and get the image with std::future::get().
+//! or at the end of the scope.
 //!
 //! This allows for the most simple parallel execution.
 template <typename PaneCoordT>
@@ -238,68 +229,23 @@ class AsyncMandelbrotRenderer : public BaseMandelbrotRenderer<PaneCoordT>
 {
     using Base = BaseMandelbrotRenderer<PaneCoordT>;
 
-public:
+  public:
     using ImageCoords = typename Base::ImageCoords;
     using PaneCoords = typename Base::PaneCoords;
 
-    AsyncMandelbrotRenderer(const PaletteFn& palette = ::palette::simple)
+    AsyncMandelbrotRenderer(const PaletteFn &palette = ::palette::simple)
         : Base(palette) {}
 
-    std::future<sf::Image> render_async(const ImageCoords& image_coordinates,
-                                   const PaneCoords& pane_coordinates,
-                                   int N) {
+    std::future<sf::Image> render_async(const ImageCoords &image_coordinates,
+                                        const PaneCoords &pane_coordinates,
+                                        int N)
+    {
         return std::async(std::launch::async,
                           &AsyncMandelbrotRenderer::render_simple,
                           this,
                           image_coordinates,
                           pane_coordinates,
                           N);
-    }
-};
-
-
-//! Renders requested task in a thread pool.
-//!
-//! render_add_task() returns a future object.
-//! With it you can wait for execution to complete with std::future::wait()
-//! or at the end of the scope and get the image with std::future::get().
-//!
-//! Thread pool allows to eliminate the cost of creating new threads
-//! every call while still executing in parallel.
-//!
-//! NOTE: this is very slow in debug!
-template <typename PaneCoordT>
-class ThreadedMandelbrotRenderer
-        : public BaseMandelbrotRenderer<PaneCoordT>
-{
-    using Base = BaseMandelbrotRenderer<PaneCoordT>;
-    static constexpr auto n_threads = 8;
-
-    ctpl::thread_pool _pool;
-
-public:
-    using ImageCoords = typename Base::ImageCoords;
-    using PaneCoords = typename Base::PaneCoords;
-
-    ThreadedMandelbrotRenderer(const PaletteFn& palette = ::palette::simple)
-        : Base(palette), _pool(n_threads) {}
-
-    // Add task to the thread pool
-    auto render_task_add(const ImageCoords& image_coordinates,
-                        const PaneCoords& pane_coordinates,
-                        int N) {
-        Base::enable_all();
-        return _pool.push([&] (int /* id */) {
-            return this->render_fn(image_coordinates,
-                                   pane_coordinates,
-                                   N); });
-    }
-
-    // Wait for all computing threads to finish and stop all threads
-    // if wait is true waits  for all remaining tasks to complete
-    // otherwise the queue is cleared without running them
-    void stop_all(bool wait = true) {
-        _pool.stop(wait);
     }
 };
 

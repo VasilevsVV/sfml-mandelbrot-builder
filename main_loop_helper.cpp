@@ -37,9 +37,9 @@ void MainLoopHelper::setDisplayRectEnd(sf::Vector2f pos)
     region_selection_rect.setSize({pos.x - rectPos.x, pos.y - rectPos.y});
 }
 
-Rectangle<float> MainLoopHelper::getSelectedRegion()
+Rectangle<unsigned int> MainLoopHelper::getSelectedRegion()
 {
-    Rectangle<float> res;
+    Rectangle<unsigned int> res;
     auto pos = region_selection_rect.getPosition();
     auto size = region_selection_rect.getSize();
     if (size.x >= 0)
