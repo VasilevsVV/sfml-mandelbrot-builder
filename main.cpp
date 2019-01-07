@@ -30,6 +30,7 @@ int main()
     // Initialization
 
     MainLoopHelper *helper = new MainLoopHelper(window);
+    EventHelper eventHelper(window);
     bool UpdateImage = true;
     std::future<sf::Image> future;
 
@@ -37,11 +38,7 @@ int main()
 
     while (window->isOpen())
     {
-        sf::Event event;
-        while (window->pollEvent(event))
-        {
-            processEvent(window, event, helper);
-        }
+        eventHelper.processEvents(helper);
 
         // render to image
         // auto future = renderer.render_task_add(img, pane, 1000);
