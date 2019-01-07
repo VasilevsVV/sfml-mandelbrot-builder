@@ -171,17 +171,13 @@ bool MainLoopHelper::isRegionDisplayed()
 
 sf::Vector2<double> scaleDownVector(sf::Vector2<double> init, sf::Vector2u startVect, sf::Vector2u endVect)
 {
-    //std::printf("[vect] => %f :: %f\n", init.x, init.y);
     sf::Vector2<double> res;
     double dist = init.y - init.x;
     double startDist = startVect.y - startVect.x;
-    //std::printf("startVect => %d :: %d \n", startVect.x, startVect.y);
-    // std::printf("StartDist => %f\n", startDist);
     double dx = (endVect.x - startVect.x) / startDist;
     double dy = (endVect.y - startVect.x) / startDist;
     res.x = init.x + dist * dx;
     res.y = init.x + dist * dy;
-    std::printf("%f : %f \n", res.x, res.y);
     return res;
 }
 
