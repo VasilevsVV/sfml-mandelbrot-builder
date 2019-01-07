@@ -41,7 +41,6 @@ void MainLoopHelper::processFrame()
     // auto future = renderer.render_task_add(img, pane, 1000);
     if (UpdateImage)
     {
-        //pane = scaleCoordinates(pane, img, {{200, 150}, {600, 450}});
         UpdateImage = false;
         future = renderer.render_async(img, pane, 1000);
     }
@@ -93,7 +92,6 @@ void MainLoopHelper::processEvents()
                 togleRegionRect(false);
                 pane = pane = scaleCoordinates(pane, img, getSelectedRegion());
                 UpdateImage = true;
-                // auto rect = helper.getSelectedRegion();  // To be used in future.
                 break;
             case sf::Mouse::Right:
                 break;
@@ -106,7 +104,12 @@ void MainLoopHelper::processEvents()
         case sf::Event::MouseMoved:
             if (isRegionDisplayed())
             {
-                setDisplayRectEnd(sf::Vector2f(event.mouseMove.x, event.mouseMove.y));
+                //setDisplayRectEnd(sf::Vector2f(event.mouseMove.x, event.mouseMove.y));
+                auto pos = region_selection_rect.getPosition();
+                setDisplayRectEnd(
+                    sf::Vector2f(
+                        event.mouseMove.x,
+                        pos.y + (event.mouseMove.x - pos.x) * wRatio));
             }
             break;
         }
