@@ -41,7 +41,7 @@ void MainLoopHelper::processFrame()
     // auto future = renderer.render_task_add(img, pane, 1000);
     if (UpdateImage)
     {
-        pane = scaleCoordinates(pane, img, {{200, 150}, {600, 450}});
+        //pane = scaleCoordinates(pane, img, {{200, 150}, {600, 450}});
         UpdateImage = false;
         future = renderer.render_async(img, pane, 1000);
     }
@@ -49,7 +49,9 @@ void MainLoopHelper::processFrame()
     // wait until timeout
     // future.wait_for(std::chrono::miliseconds(1000));
     // renderer.cancel_all();
-    if (future.valid())
+
+    if (future.valid() &&
+        future.wait_for(std::chrono::milliseconds(1)) == std::future_status::ready)
         texture.update(future.get());
 
     window->clear();
@@ -89,6 +91,8 @@ void MainLoopHelper::processEvents()
             {
             case sf::Mouse::Left:
                 togleRegionRect(false);
+                pane = pane = scaleCoordinates(pane, img, getSelectedRegion());
+                UpdateImage = true;
                 // auto rect = helper.getSelectedRegion();  // To be used in future.
                 break;
             case sf::Mouse::Right:
