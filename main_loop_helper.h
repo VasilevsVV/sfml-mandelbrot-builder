@@ -43,8 +43,4 @@ public:
   bool isRegionDisplayed();
 };
 
-Rectangle<double> scaleCoordinates(Rectangle<double> initialCoords,
-                                   Rectangle<unsigned int> imgCoorgs,
-                                   Rectangle<unsigned int> newRegion);
-
 #endif //HELPER_H

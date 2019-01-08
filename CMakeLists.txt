@@ -15,6 +15,7 @@ set(EXECUTABLE_NAME mandelbrot-builder)
 set(EXECUTABLE_SOURCE
     main.cpp
     renderer.h
+    renderer_types.h
     event_helper.cpp
     event_helper.h
     main.cpp

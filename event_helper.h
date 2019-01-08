@@ -12,7 +12,4 @@ class EventHelper
     void processEvents(AppController *helper);
 };
 
-Rectangle<double> scaleCoordinates(Rectangle<double> initialCoords,
-                                   Rectangle<unsigned int> imgCoorgs,
-                                   Rectangle<unsigned int> newRegion);
 #endif

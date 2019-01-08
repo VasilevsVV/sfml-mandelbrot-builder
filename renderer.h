@@ -1,107 +1,13 @@
 #ifndef RENDERER_H
 #define RENDERER_H
 
-#include "SFML/System/Vector2.hpp"
 #include "SFML/Graphics/Image.hpp"
 
 #include <memory>
 #include <future>
-#include <cassert>
-#include <thread>
-#include <atomic>
 
 #include "ctpl_stl.h"
-
-namespace {
-// Return value scaled from [x_min, x_max] to [a,b]
-template <typename T_in, typename T_out>
-inline T_out scale(T_in x, T_in x_min, T_in x_max, T_out a, T_out b)
-{
-    assert(x_min < x_max);
-    assert(a < b);
-    return T_out((b - a) * (x - x_min) / (x_max - x_min)) + a;
-}
-
-// Return value scaled from [x_min, x_max] to [a,b] in reverse
-template <typename T_in, typename T_out>
-inline T_out inverse_scale(T_in x, T_in x_min, T_in x_max, T_out a, T_out b) {
-    return a - scale(x, x_min, x_max, a, b);
-}
-
-// Linear Interpolation
-template <typename T, typename U>
-inline T lerp(T v0, T v1, U t) {
-    return T((1 - t) * v0 + t * v1);
-}
-}
-
-template <typename T>
-struct Rectangle {
-    sf::Vector2<T> topleft, bottomright;
-};
-
-//!  PalleteFn: a callable with a signature of sf::Color(int i, int N)
-//!             that is used to convert number of iterations to color.
-//!             This should accept an arbitary non-negative value of i and N
-//!             where i <= N. Otherwise behaviour is undefined.
-using PaletteFn = std::function<sf::Color(const int, const int)>;
-
-//! Sample Pallette functions
-namespace palette {
-namespace helper {
-inline sf::Color lerp_color(sf::Color a, sf::Color b, double factor) {
-    return {
-        lerp(a.r, b.r, factor),
-        lerp(a.g, b.g, factor),
-        lerp(a.b, b.b, factor)
-    };
-}
-}
-    inline sf::Color simple(const int i, const int N) {
-        if(i != N) {
-            return {0,0,0};
-        } else {
-            return {255,255,255};
-        }
-    }
-
-    inline sf::Color grayscale(const int i, const int N) {
-        if( i != N ){
-            return { ::scale<int, sf::Uint8>(i, 0, N, 0, 255),
-                     ::scale<int, sf::Uint8>(i, 0, N, 0, 255),
-                     ::scale<int, sf::Uint8>(i, 0, N, 0, 255) };
-        } else {
-            return {0,0,0};
-        }
-
-    }
-
-    inline sf::Color ultra_fractal(const int i, const int N) {
-        // Ultra Fractal palette
-        const static std::array<sf::Color, 12> mapping {
-            sf::Color{25, 7, 26},
-            sf::Color{9, 1, 47},
-            sf::Color{0, 7, 100},
-            sf::Color{12, 44, 138},
-            sf::Color{24, 82, 177},
-            sf::Color{57, 125, 209},
-            sf::Color{211, 236, 248},
-            sf::Color{241, 233, 191},
-            sf::Color{248, 201, 95},
-            sf::Color{255, 170, 0},
-            sf::Color{204, 128, 0},
-            sf::Color{153, 87, 0}
-        };
-
-        const double value = ::scale<int, double>(i, 0, N, 0, mapping.size());
-        const int value_int = int(value);
-        const int colormap_begin = value_int % (mapping.size() - 1);
-        const double factor = value - value_int;
-
-        return helper::lerp_color(mapping[colormap_begin],
-                                  mapping[colormap_begin + 1], factor);
-    }
-}
+#include "renderer_types.h"
 
 //! Base renderer with Mandelbrot implementation
 //!
@@ -201,10 +107,10 @@ protected:
                 world_img_y < img_max_y; ++world_img_y)
             {
                 // set mandelbrot value
-                PaneCoordT pane_x = ::scale(world_img_x, img_min_x, img_max_x,
-                                            pane_min_x, pane_max_x);
-                PaneCoordT pane_y = ::scale(world_img_y, img_min_y, img_max_y,
-                                            pane_min_y, pane_max_y);
+                PaneCoordT pane_x = calc::scale(world_img_x, img_min_x, img_max_x,
+                                                pane_min_x, pane_max_x);
+                PaneCoordT pane_y = calc::scale(world_img_y, img_min_y, img_max_y,
+                                                pane_min_y, pane_max_y);
 
                 sf::Color color = get_color_for_coord(pane_x, pane_y, N);
                 new_image.setPixel(world_img_x - img_min_x,

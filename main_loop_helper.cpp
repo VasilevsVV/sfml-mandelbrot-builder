@@ -90,7 +90,7 @@ void AppController::processEvents()
             {
             case sf::Mouse::Left:
                 togleRegionRect(false);
-                pane = pane = scaleCoordinates(pane, img, getSelectedRegion());
+                pane.scale_by(img, getSelectedRegion());
                 UpdateImage = true;
                 break;
             case sf::Mouse::Right:
@@ -170,32 +170,4 @@ void AppController::togleRegionRect(bool state)
 bool AppController::isRegionDisplayed()
 {
     return display_region_rect;
-}
-
-sf::Vector2<double> scaleDownVector(sf::Vector2<double> init, sf::Vector2u startVect, sf::Vector2u endVect)
-{
-    sf::Vector2<double> res;
-    double dist = init.y - init.x;
-    double startDist = startVect.y - startVect.x;
-    double dx = (endVect.x - startVect.x) / startDist;
-    double dy = (endVect.y - startVect.x) / startDist;
-    res.x = init.x + dist * dx;
-    res.y = init.x + dist * dy;
-    return res;
-}
-
-Rectangle<double> scaleCoordinates(Rectangle<double> init,
-                                   Rectangle<unsigned int> img,
-                                   Rectangle<unsigned int> reg)
-{
-    Rectangle<double> res;
-    auto xVect = scaleDownVector({init.topleft.x, init.bottomright.x},
-                                 {img.topleft.x, img.bottomright.x},
-                                 {reg.topleft.x, reg.bottomright.x});
-    auto yVect = scaleDownVector({init.topleft.y, init.bottomright.y},
-                                 {img.topleft.y, img.bottomright.y},
-                                 {reg.topleft.y, reg.bottomright.y});
-    res.topleft = {xVect.x, yVect.x};
-    res.bottomright = {xVect.y, yVect.y};
-    return res;
 }
