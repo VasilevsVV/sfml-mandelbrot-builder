@@ -42,16 +42,23 @@ void MainLoopHelper::processFrame()
     if (UpdateImage)
     {
         UpdateImage = false;
-        future = renderer.render_async(img, pane, 1000);
+        // future = renderer.render_async(img, pane, 1000);
+        chunks_futur_list = runAsyncRender(split_image_to_chunks(img, pane, 4));
     }
 
     // wait until timeout
     // future.wait_for(std::chrono::miliseconds(1000));
     // renderer.cancel_all();
 
-    if (future.valid() &&
-        future.wait_for(std::chrono::milliseconds(1)) == std::future_status::ready)
-        texture.update(future.get());
+    for (auto it = chunks_futur_list.begin(); it != chunks_futur_list.end(); it++)
+    {
+        if (it->future.valid() && it->future.wait_for(std::chrono::milliseconds(1)) == std::future_status::ready)
+            texture.update(it->future.get(), it->coords.x, it->coords.y);
+    }
+
+    // if (future.valid() &&
+    //     future.wait_for(std::chrono::milliseconds(1)) == std::future_status::ready)
+    //     texture.update(future.get());
 
     window->clear();
     window->draw(sprite);
@@ -121,10 +128,8 @@ std::list<chunkFuture> MainLoopHelper::runAsyncRender(std::list<imgChunk> chunkL
     std::list<chunkFuture> resList;
     for (auto it = chunkList.begin(); it != chunkList.end(); it++)
     {
-        //chunkFuture cf(std::move(renderer.render_async(it->img, it->pane, 1000)), it->img.topleft);
-        //chunkFuture cf = {it->img.topleft, renderer.render_async(it->img, it->pane, 1000)};
-        chunkFuture cf(*it, &renderer);
-        resList.push_back(cf);
+        std::printf("%d :: %d\n", it->img.topleft.x, it->img.topleft.y);
+        resList.emplace_back(it->img.topleft, renderer.render_async(it->img, it->pane, 1000));
     }
     return resList;
 }
@@ -231,14 +236,14 @@ std::list<imgChunk> MainLoopHelper::split_image_to_chunks(Rectangle<uint> img,
         {
             imgChunk chunk;
             chunk.img.topleft.x = imgT.x + dx_img * i / split_factor;
-            chunk.img.topleft.y = imgT.y + dy_img * i / split_factor;
+            chunk.img.topleft.y = imgT.y + dy_img * j / split_factor;
             chunk.img.bottomright.x = imgT.x + dx_img * (i + 1) / split_factor;
-            chunk.img.bottomright.y = imgT.y + dy_img * (i + 1) / split_factor;
+            chunk.img.bottomright.y = imgT.y + dy_img * (j + 1) / split_factor;
 
             chunk.pane.topleft.x = paneT.x + dx_pane * i / split_factor;
-            chunk.pane.topleft.y = paneT.y + dy_pane * i / split_factor;
+            chunk.pane.topleft.y = paneT.y + dy_pane * j / split_factor;
             chunk.pane.bottomright.x = paneT.x + dx_pane * (i + 1) / split_factor;
-            chunk.pane.bottomright.y = paneT.y + dy_pane * (i + 1) / split_factor;
+            chunk.pane.bottomright.y = paneT.y + dy_pane * (j + 1) / split_factor;
             res.push_back(chunk);
         }
     }

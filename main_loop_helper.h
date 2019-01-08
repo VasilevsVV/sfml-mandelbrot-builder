@@ -26,13 +26,9 @@ struct chunkFuture
   chunkFuture(chunkFuture &&cf)
       : coords(std::move(cf.coords)), future(std::move(cf.future)){};
 
-  chunkFuture(imgChunk chunk, Renderer *renderer)
-  {
-    coords = chunk.img.topleft;
-    future = renderer->render_async(chunk.img, chunk.pane, 1000);
-  }
-  // public:
-  //   chunkFuture(std::future<sf::Image> &&future, const sf::Vector2u &coords) : future(std::move(future)), coords(coords) {}
+public:
+  chunkFuture(const sf::Vector2u &coords, std::future<sf::Image> &&future)
+      : future(std::move(future)), coords(coords) {}
 };
 
 class MainLoopHelper
@@ -50,6 +46,7 @@ class MainLoopHelper
   sf::Sprite sprite;
 
   std::future<sf::Image> future;
+  std::list<chunkFuture> chunks_futur_list;
 
   void initialize_auxiliary_entities();
   std::list<imgChunk> split_image_to_chunks(Rectangle<uint> img, Rectangle<double> pane, uint split_factor);
