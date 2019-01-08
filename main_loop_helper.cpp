@@ -5,7 +5,9 @@ MainLoopHelper::MainLoopHelper(sf::RenderWindow *window)
     this->window = window;
     img = {{0, 0}, window->getSize()};
     pane = {{-2.0, -1.5}, {2.0, 1.5}};
-    renderer.set_palette(palette::grayscale);
+    //renderer.set_palette(palette::grayscale);
+    //renderer.set_palette(custom_pallet_from_i);
+    renderer.set_palette(custom_pallet_relational);
     texture.create(window->getSize().x, window->getSize().y);
     sprite.setTexture(texture);
     initialize_auxiliary_entities();
@@ -304,4 +306,22 @@ bool MainLoopHelper::maxZoomOut()
 bool MainLoopHelper::cancelAllRender()
 {
     renderer.cancel_all();
+}
+
+static sf::Color custom_pallet_from_i(const int i, const int N)
+{
+    if (i == N)
+        return {0, 0, 0};
+    return {sf::Uint8(i * 3),
+            sf::Uint8(i * 2),
+            sf::Uint8(i)};
+}
+
+static sf::Color custom_pallet_relational(const int i, const int N)
+{
+    if (i == N)
+        return {0, 0, 0};
+    return {sf::Uint8(255 * i / N),
+            sf::Uint8(255 * i / N * 2),
+            sf::Uint8(255 * i / N * 3)};
 }

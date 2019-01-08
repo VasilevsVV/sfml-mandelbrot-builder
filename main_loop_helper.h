@@ -39,6 +39,9 @@ struct ZoomState
   bool updateImage;
 };
 
+static sf::Color custom_pallet_from_i(const int i, const int N);
+static sf::Color custom_pallet_relational(const int i, const int N);
+
 class MainLoopHelper
 {
   bool display_region_rect = false;
