@@ -6,7 +6,7 @@
 #include <math.h>
 #include "renderer.h"
 
-class MainLoopHelper
+class AppController
 {
   bool display_region_rect = false;
   bool UpdateImage = true;
@@ -29,8 +29,8 @@ class MainLoopHelper
   void initialize_auxiliary_entities();
 
 public:
-  MainLoopHelper(sf::RenderWindow *window);
-  ~MainLoopHelper();
+  AppController(sf::RenderWindow *window);
+  ~AppController();
   void displayAuxiliaryEntities();
   void setDisplayRectStart(sf::Vector2f pos);
   void setDisplayRectEnd(sf::Vector2f pos);

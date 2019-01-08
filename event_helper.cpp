@@ -5,7 +5,7 @@ EventHelper::EventHelper(sf::RenderWindow *window)
     this->window = window;
 }
 
-void EventHelper::processEvents(MainLoopHelper *helper)
+void EventHelper::processEvents(AppController *helper)
 {
     sf::Event event;
 

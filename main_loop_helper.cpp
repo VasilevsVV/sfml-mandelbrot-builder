@@ -1,6 +1,6 @@
 #include "main_loop_helper.h"
 
-MainLoopHelper::MainLoopHelper(sf::RenderWindow *window)
+AppController::AppController(sf::RenderWindow *window)
 {
     this->window = window;
     img = {{0, 0}, window->getSize()};
@@ -11,11 +11,11 @@ MainLoopHelper::MainLoopHelper(sf::RenderWindow *window)
     initialize_auxiliary_entities();
 }
 
-MainLoopHelper::~MainLoopHelper()
+AppController::~AppController()
 {
 }
 
-void MainLoopHelper::initialize_auxiliary_entities()
+void AppController::initialize_auxiliary_entities()
 {
     // Region rectangle initialization
     region_selection_rect.setFillColor(sf::Color(0, 0, 0, 0));
@@ -25,7 +25,7 @@ void MainLoopHelper::initialize_auxiliary_entities()
     region_selection_rect.setOutlineColor(sf::Color::Yellow);
 }
 
-void MainLoopHelper::startMainLoop()
+void AppController::startMainLoop()
 {
     while (window->isOpen())
     {
@@ -33,7 +33,7 @@ void MainLoopHelper::startMainLoop()
     }
 }
 
-void MainLoopHelper::processFrame()
+void AppController::processFrame()
 {
     processEvents();
 
@@ -60,7 +60,7 @@ void MainLoopHelper::processFrame()
     window->display();
 }
 
-void MainLoopHelper::processEvents()
+void AppController::processEvents()
 {
     sf::Event event;
 
@@ -116,24 +116,24 @@ void MainLoopHelper::processEvents()
     }
 }
 
-void MainLoopHelper::displayAuxiliaryEntities()
+void AppController::displayAuxiliaryEntities()
 {
     if (display_region_rect)
         window->draw(region_selection_rect);
 }
 
-void MainLoopHelper::setDisplayRectStart(sf::Vector2f pos)
+void AppController::setDisplayRectStart(sf::Vector2f pos)
 {
     region_selection_rect.setPosition(pos);
 }
 
-void MainLoopHelper::setDisplayRectEnd(sf::Vector2f pos)
+void AppController::setDisplayRectEnd(sf::Vector2f pos)
 {
     auto rectPos = region_selection_rect.getPosition();
     region_selection_rect.setSize({pos.x - rectPos.x, pos.y - rectPos.y});
 }
 
-Rectangle<unsigned int> MainLoopHelper::getSelectedRegion()
+Rectangle<unsigned int> AppController::getSelectedRegion()
 {
     Rectangle<unsigned int> res;
     auto pos = region_selection_rect.getPosition();
@@ -162,12 +162,12 @@ Rectangle<unsigned int> MainLoopHelper::getSelectedRegion()
     return res;
 }
 
-void MainLoopHelper::togleRegionRect(bool state)
+void AppController::togleRegionRect(bool state)
 {
     display_region_rect = state;
 }
 
-bool MainLoopHelper::isRegionDisplayed()
+bool AppController::isRegionDisplayed()
 {
     return display_region_rect;
 }

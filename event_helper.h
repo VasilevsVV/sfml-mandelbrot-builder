@@ -9,7 +9,7 @@ class EventHelper
 
   public:
     EventHelper(sf::RenderWindow *window);
-    void processEvents(MainLoopHelper *helper);
+    void processEvents(AppController *helper);
 };
 
 Rectangle<double> scaleCoordinates(Rectangle<double> initialCoords,
