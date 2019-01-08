@@ -90,7 +90,7 @@ void MainLoopHelper::processEvents()
             {
             case sf::Mouse::Left:
                 togleRegionRect(false);
-                pane = pane = scaleCoordinates(pane, img, getSelectedRegion());
+                pane = scaleCoordinates(pane, img, getSelectedRegion());
                 UpdateImage = true;
                 break;
             case sf::Mouse::Right:
@@ -197,5 +197,37 @@ Rectangle<double> scaleCoordinates(Rectangle<double> init,
                                  {reg.topleft.y, reg.bottomright.y});
     res.topleft = {xVect.x, yVect.x};
     res.bottomright = {xVect.y, yVect.y};
+    return res;
+}
+
+std::list<imgChunk> MainLoopHelper::split_image_to_chunks(Rectangle<uint> img,
+                                                          Rectangle<double> pane,
+                                                          uint split_factor)
+{
+    std::list<imgChunk> res;
+    assert(split_factor > 0);
+    sf::Vector2u imgT = img.topleft;
+    sf::Vector2<double> paneT = pane.topleft;
+    uint dx_img = img.bottomright.x - img.topleft.x;
+    uint dy_img = img.bottomright.y - img.topleft.y;
+    double dx_pane = pane.bottomright.x - pane.topleft.x;
+    double dy_pane = pane.bottomright.y - pane.topleft.y;
+    for (int i = 0; i < split_factor; i++)
+    {
+        for (int j = 0; j < split_factor; j++)
+        {
+            imgChunk chunk;
+            chunk.img.topleft.x = imgT.x + dx_img * i / split_factor;
+            chunk.img.topleft.y = imgT.y + dy_img * i / split_factor;
+            chunk.img.bottomright.x = imgT.x + dx_img * (i + 1) / split_factor;
+            chunk.img.bottomright.y = imgT.y + dy_img * (i + 1) / split_factor;
+
+            chunk.pane.topleft.x = paneT.x + dx_pane * i / split_factor;
+            chunk.pane.topleft.y = paneT.y + dy_pane * i / split_factor;
+            chunk.pane.bottomright.x = paneT.x + dx_pane * (i + 1) / split_factor;
+            chunk.pane.bottomright.y = paneT.y + dy_pane * (i + 1) / split_factor;
+            res.push_back(chunk);
+        }
+    }
     return res;
 }

@@ -5,6 +5,13 @@
 #include <memory>
 #include <math.h>
 #include "renderer.h"
+#include <list>
+
+struct imgChunk
+{
+  Rectangle<double> pane;
+  Rectangle<uint> img;
+};
 
 class MainLoopHelper
 {
@@ -27,6 +34,7 @@ class MainLoopHelper
   std::future<sf::Image> future;
 
   void initialize_auxiliary_entities();
+  std::list<imgChunk> split_image_to_chunks(Rectangle<uint> img, Rectangle<double> pane, uint split_factor);
 
 public:
   MainLoopHelper(sf::RenderWindow *window);
