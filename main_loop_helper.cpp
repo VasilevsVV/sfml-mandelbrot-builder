@@ -3,6 +3,11 @@
 MainLoopHelper::MainLoopHelper(sf::RenderWindow *window)
 {
     this->window = window;
+    img = {{0, 0}, window->getSize()};
+    pane = {{-2.0, -1.5}, {2.0, 1.5}};
+    renderer.set_palette(palette::grayscale);
+    texture.create(window->getSize().x, window->getSize().y);
+    sprite.setTexture(texture);
     initialize_auxiliary_entities();
 }
 
@@ -18,6 +23,114 @@ void MainLoopHelper::initialize_auxiliary_entities()
     region_selection_rect.setPosition({20, 20});
     region_selection_rect.setSize({50, 50});
     region_selection_rect.setOutlineColor(sf::Color::Yellow);
+}
+
+void MainLoopHelper::startMainLoop()
+{
+    while (window->isOpen())
+    {
+        processFrame();
+    }
+}
+
+void MainLoopHelper::processFrame()
+{
+    processEvents();
+
+    // render to image
+    // auto future = renderer.render_task_add(img, pane, 1000);
+    if (UpdateImage)
+    {
+        UpdateImage = false;
+        // future = renderer.render_async(img, pane, 1000);
+        chunks_futur_list = runAsyncRender(split_image_to_chunks(img, pane, 4));
+    }
+
+    // wait until timeout
+    // future.wait_for(std::chrono::miliseconds(1000));
+    // renderer.cancel_all();
+
+    for (auto it = chunks_futur_list.begin(); it != chunks_futur_list.end(); it++)
+    {
+        if (it->future.valid() && it->future.wait_for(std::chrono::milliseconds(1)) == std::future_status::ready)
+            texture.update(it->future.get(), it->coords.x, it->coords.y);
+    }
+
+    // if (future.valid() &&
+    //     future.wait_for(std::chrono::milliseconds(1)) == std::future_status::ready)
+    //     texture.update(future.get());
+
+    window->clear();
+    window->draw(sprite);
+    displayAuxiliaryEntities();
+    //window->draw(*region_selection_rect);
+    window->display();
+}
+
+void MainLoopHelper::processEvents()
+{
+    sf::Event event;
+
+    while (window->pollEvent(event))
+    {
+        auto wSize = window->getSize();
+        double wRatio = wSize.y / double(wSize.x);
+        switch (event.type)
+        {
+        case sf::Event::Closed:
+            window->close();
+            break;
+        case sf::Event::MouseButtonPressed:
+            switch (event.key.code)
+            {
+            case sf::Mouse::Left:
+                togleRegionRect(true);
+                setDisplayRectStart(sf::Vector2f(event.mouseButton.x, event.mouseButton.y));
+                setDisplayRectEnd(sf::Vector2f(event.mouseButton.x, event.mouseButton.y));
+                break;
+            case sf::Mouse::Right:
+                break;
+            }
+            break;
+        case sf::Event::MouseButtonReleased:
+            switch (event.key.code)
+            {
+            case sf::Mouse::Left:
+                togleRegionRect(false);
+                pane = scaleCoordinates(pane, img, getSelectedRegion());
+                UpdateImage = true;
+                break;
+            case sf::Mouse::Right:
+                break;
+            }
+            break;
+        case sf::Event::KeyPressed:
+            break;
+        case sf::Event::KeyReleased:
+            break;
+        case sf::Event::MouseMoved:
+            if (isRegionDisplayed())
+            {
+                //setDisplayRectEnd(sf::Vector2f(event.mouseMove.x, event.mouseMove.y));
+                auto pos = region_selection_rect.getPosition();
+                setDisplayRectEnd(
+                    sf::Vector2f(
+                        event.mouseMove.x,
+                        pos.y + (event.mouseMove.x - pos.x) * wRatio));
+            }
+            break;
+        }
+    }
+}
+
+std::list<chunkFuture> MainLoopHelper::runAsyncRender(std::list<imgChunk> chunkList)
+{
+    std::list<chunkFuture> resList;
+    for (auto it = chunkList.begin(); it != chunkList.end(); it++)
+    {
+        resList.emplace_back(it->img.topleft, renderer.render_async(it->img, it->pane, 1000));
+    }
+    return resList;
 }
 
 void MainLoopHelper::displayAuxiliaryEntities()
@@ -37,9 +150,9 @@ void MainLoopHelper::setDisplayRectEnd(sf::Vector2f pos)
     region_selection_rect.setSize({pos.x - rectPos.x, pos.y - rectPos.y});
 }
 
-Rectangle<float> MainLoopHelper::getSelectedRegion()
+Rectangle<unsigned int> MainLoopHelper::getSelectedRegion()
 {
-    Rectangle<float> res;
+    Rectangle<unsigned int> res;
     auto pos = region_selection_rect.getPosition();
     auto size = region_selection_rect.getSize();
     if (size.x >= 0)
@@ -74,4 +187,64 @@ void MainLoopHelper::togleRegionRect(bool state)
 bool MainLoopHelper::isRegionDisplayed()
 {
     return display_region_rect;
+}
+
+sf::Vector2<double> scaleDownVector(sf::Vector2<double> init, sf::Vector2u startVect, sf::Vector2u endVect)
+{
+    sf::Vector2<double> res;
+    double dist = init.y - init.x;
+    double startDist = startVect.y - startVect.x;
+    double dx = (endVect.x - startVect.x) / startDist;
+    double dy = (endVect.y - startVect.x) / startDist;
+    res.x = init.x + dist * dx;
+    res.y = init.x + dist * dy;
+    return res;
+}
+
+Rectangle<double> scaleCoordinates(Rectangle<double> init,
+                                   Rectangle<unsigned int> img,
+                                   Rectangle<unsigned int> reg)
+{
+    Rectangle<double> res;
+    auto xVect = scaleDownVector({init.topleft.x, init.bottomright.x},
+                                 {img.topleft.x, img.bottomright.x},
+                                 {reg.topleft.x, reg.bottomright.x});
+    auto yVect = scaleDownVector({init.topleft.y, init.bottomright.y},
+                                 {img.topleft.y, img.bottomright.y},
+                                 {reg.topleft.y, reg.bottomright.y});
+    res.topleft = {xVect.x, yVect.x};
+    res.bottomright = {xVect.y, yVect.y};
+    return res;
+}
+
+std::list<imgChunk> MainLoopHelper::split_image_to_chunks(Rectangle<uint> img,
+                                                          Rectangle<double> pane,
+                                                          uint split_factor)
+{
+    std::list<imgChunk> res;
+    assert(split_factor > 0);
+    sf::Vector2u imgT = img.topleft;
+    sf::Vector2<double> paneT = pane.topleft;
+    uint dx_img = img.bottomright.x - img.topleft.x;
+    uint dy_img = img.bottomright.y - img.topleft.y;
+    double dx_pane = pane.bottomright.x - pane.topleft.x;
+    double dy_pane = pane.bottomright.y - pane.topleft.y;
+    for (int i = 0; i < split_factor; i++)
+    {
+        for (int j = 0; j < split_factor; j++)
+        {
+            imgChunk chunk;
+            chunk.img.topleft.x = imgT.x + dx_img * i / split_factor;
+            chunk.img.topleft.y = imgT.y + dy_img * j / split_factor;
+            chunk.img.bottomright.x = imgT.x + dx_img * (i + 1) / split_factor;
+            chunk.img.bottomright.y = imgT.y + dy_img * (j + 1) / split_factor;
+
+            chunk.pane.topleft.x = paneT.x + dx_pane * i / split_factor;
+            chunk.pane.topleft.y = paneT.y + dy_pane * j / split_factor;
+            chunk.pane.bottomright.x = paneT.x + dx_pane * (i + 1) / split_factor;
+            chunk.pane.bottomright.y = paneT.y + dy_pane * (j + 1) / split_factor;
+            res.push_back(chunk);
+        }
+    }
+    return res;
 }
