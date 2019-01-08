@@ -128,7 +128,6 @@ std::list<chunkFuture> MainLoopHelper::runAsyncRender(std::list<imgChunk> chunkL
     std::list<chunkFuture> resList;
     for (auto it = chunkList.begin(); it != chunkList.end(); it++)
     {
-        std::printf("%d :: %d\n", it->img.topleft.x, it->img.topleft.y);
         resList.emplace_back(it->img.topleft, renderer.render_async(it->img, it->pane, 1000));
     }
     return resList;
