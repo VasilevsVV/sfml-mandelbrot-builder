@@ -116,6 +116,19 @@ void MainLoopHelper::processEvents()
     }
 }
 
+std::list<chunkFuture> MainLoopHelper::runAsyncRender(std::list<imgChunk> chunkList)
+{
+    std::list<chunkFuture> resList;
+    for (auto it = chunkList.begin(); it != chunkList.end(); it++)
+    {
+        //chunkFuture cf(std::move(renderer.render_async(it->img, it->pane, 1000)), it->img.topleft);
+        //chunkFuture cf = {it->img.topleft, renderer.render_async(it->img, it->pane, 1000)};
+        chunkFuture cf(*it, &renderer);
+        resList.push_back(cf);
+    }
+    return resList;
+}
+
 void MainLoopHelper::displayAuxiliaryEntities()
 {
     if (display_region_rect)
