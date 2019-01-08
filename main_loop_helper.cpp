@@ -43,17 +43,26 @@ void MainLoopHelper::processFrame()
     {
         UpdateImage = false;
         // future = renderer.render_async(img, pane, 1000);
-        chunks_futur_list = runAsyncRender(split_image_to_chunks(img, pane, 4));
+        chunks_futur_list = runAsyncRender(split_image_to_chunks(img, pane, 6));
+        IsRenderFinished = false;
     }
 
     // wait until timeout
     // future.wait_for(std::chrono::miliseconds(1000));
     // renderer.cancel_all();
 
-    for (auto it = chunks_futur_list.begin(); it != chunks_futur_list.end(); it++)
+    if (!IsRenderFinished)
     {
-        if (it->future.valid() && it->future.wait_for(std::chrono::milliseconds(1)) == std::future_status::ready)
-            texture.update(it->future.get(), it->coords.x, it->coords.y);
+        bool renderState = true;
+        for (auto it = chunks_futur_list.begin(); it != chunks_futur_list.end(); it++)
+        {
+            if (it->future.valid())
+                if (it->future.wait_for(std::chrono::milliseconds(1)) == std::future_status::ready)
+                    texture.update(it->future.get(), it->coords.x, it->coords.y);
+                else
+                    renderState = false;
+        }
+        IsRenderFinished = renderState;
     }
 
     // if (future.valid() &&
@@ -97,16 +106,26 @@ void MainLoopHelper::processEvents()
             {
             case sf::Mouse::Left:
                 togleRegionRect(false);
+                addStateToStack(pane, !IsRenderFinished);
                 pane = scaleCoordinates(pane, img, getSelectedRegion());
+                cancelAllRender();
                 UpdateImage = true;
                 break;
             case sf::Mouse::Right:
+                zoomOut();
                 break;
             }
             break;
         case sf::Event::KeyPressed:
             break;
         case sf::Event::KeyReleased:
+            switch (event.key.code)
+            {
+            case sf::Keyboard::Escape:
+                if (maxZoomOut())
+                    UpdateImage = true;
+                break;
+            }
             break;
         case sf::Event::MouseMoved:
             if (isRegionDisplayed())
@@ -128,7 +147,7 @@ std::list<chunkFuture> MainLoopHelper::runAsyncRender(std::list<imgChunk> chunkL
     std::list<chunkFuture> resList;
     for (auto it = chunkList.begin(); it != chunkList.end(); it++)
     {
-        resList.emplace_back(it->img.topleft, renderer.render_async(it->img, it->pane, 1000));
+        resList.emplace_back(it->img.topleft, renderer.render_async(it->img, it->pane, 5000));
     }
     return resList;
 }
@@ -247,4 +266,42 @@ std::list<imgChunk> MainLoopHelper::split_image_to_chunks(Rectangle<uint> img,
         }
     }
     return res;
+}
+
+void MainLoopHelper::addStateToStack(PaneCoords pane, bool update)
+{
+    zoomStack.push({texture, pane, update});
+}
+
+bool MainLoopHelper::zoomOut()
+{
+    if (!zoomStack.empty())
+    {
+        pane = zoomStack.top().pane;
+        texture = zoomStack.top().texture;
+        UpdateImage = zoomStack.top().updateImage;
+        zoomStack.pop();
+        cancelAllRender();
+        return true;
+    }
+    return false;
+}
+
+bool MainLoopHelper::maxZoomOut()
+{
+    bool res = false;
+    while (!zoomStack.empty())
+    {
+        zoomStack.pop();
+        res = true;
+        cancelAllRender();
+    }
+    pane = {{-2.0, -1.5},
+            {2.0, 1.5}};
+    return res;
+}
+
+bool MainLoopHelper::cancelAllRender()
+{
+    renderer.cancel_all();
 }

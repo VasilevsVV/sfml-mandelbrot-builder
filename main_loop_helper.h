@@ -6,6 +6,7 @@
 #include <math.h>
 #include "renderer.h"
 #include <list>
+#include <stack>
 
 using Renderer = AsyncMandelbrotRenderer<double>;
 using PaneCoords = Renderer::PaneCoords;
@@ -31,16 +32,26 @@ public:
       : future(std::move(future)), coords(coords) {}
 };
 
+struct ZoomState
+{
+  sf::Texture texture;
+  PaneCoords pane;
+  bool updateImage;
+};
+
 class MainLoopHelper
 {
   bool display_region_rect = false;
   bool UpdateImage = true;
+  bool IsRenderFinished = true;
   sf::RectangleShape region_selection_rect;
   sf::RenderWindow *window;
 
   Renderer renderer;
   ImageCoords img;
   PaneCoords pane;
+
+  std::stack<ZoomState> zoomStack;
 
   sf::Texture texture;
   sf::Sprite sprite;
@@ -51,6 +62,11 @@ class MainLoopHelper
   void initialize_auxiliary_entities();
   std::list<imgChunk> split_image_to_chunks(Rectangle<uint> img, Rectangle<double> pane, uint split_factor);
   std::list<chunkFuture> runAsyncRender(std::list<imgChunk> chunkList);
+
+  void addStateToStack(PaneCoords pane, bool update);
+  bool zoomOut();
+  bool maxZoomOut();
+  bool cancelAllRender();
 
 public:
   MainLoopHelper(sf::RenderWindow *window);

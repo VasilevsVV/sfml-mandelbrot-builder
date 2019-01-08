@@ -7,7 +7,7 @@
 
 int main()
 {
-    sf::RenderWindow *window = new sf::RenderWindow(sf::VideoMode(800, 600), "SFML works!");
+    sf::RenderWindow *window = new sf::RenderWindow(sf::VideoMode(1024, 720), "SFML works!");
 
     MainLoopHelper *helper = new MainLoopHelper(window);
 
