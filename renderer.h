@@ -28,10 +28,15 @@ inline T_out inverse_scale(T_in x, T_in x_min, T_in x_max, T_out a, T_out b) {
     return a - scale(x, x_min, x_max, a, b);
 }
 
+template <typename T, typename U, typename R>
+inline R lerp(T v0, T v1, U t) {
+    return R(U(1 - t) * U(v0) + t * U(v1));
+}
+
 // Linear Interpolation
 template <typename T, typename U>
 inline T lerp(T v0, T v1, U t) {
-    return T((1 - t) * v0 + t * v1);
+    return lerp<T,U,T>(v0, v1, t);
 }
 }
 
@@ -51,9 +56,9 @@ namespace palette {
 namespace helper {
 inline sf::Color lerp_color(sf::Color a, sf::Color b, double factor) {
     return {
-        lerp(a.r, b.r, factor),
-        lerp(a.g, b.g, factor),
-        lerp(a.b, b.b, factor)
+        lerp<sf::Uint8, double, sf::Uint8>(a.r, b.r, factor),
+        lerp<sf::Uint8, double, sf::Uint8>(a.g, b.g, factor),
+        lerp<sf::Uint8, double, sf::Uint8>(a.b, b.b, factor)
     };
 }
 }
@@ -78,28 +83,39 @@ inline sf::Color lerp_color(sf::Color a, sf::Color b, double factor) {
 
     inline sf::Color ultra_fractal(const int i, const int N) {
         // Ultra Fractal palette
-        const static std::array<sf::Color, 12> mapping {
-            sf::Color{25, 7, 26},
-            sf::Color{9, 1, 47},
-            sf::Color{0, 7, 100},
-            sf::Color{12, 44, 138},
-            sf::Color{24, 82, 177},
-            sf::Color{57, 125, 209},
-            sf::Color{211, 236, 248},
-            sf::Color{241, 233, 191},
-            sf::Color{248, 201, 95},
-            sf::Color{255, 170, 0},
-            sf::Color{204, 128, 0},
-            sf::Color{153, 87, 0}
+        constexpr int palette_size = 13;//16;
+        const static std::array<sf::Color, palette_size> mapping {
+           sf::Color{0,0,0},
+           sf::Color{ 25,  7, 26}, // dark violett
+           sf::Color{ 9 ,  1, 47}, // darkest blue
+           sf::Color{ 4 ,  4, 73}, // blue 5
+           sf::Color{ 0 ,  7,100}, // blue 4
+           sf::Color{ 12, 44,138}, // blue 3
+           sf::Color{ 24, 82,177}, // blue 2
+           sf::Color{ 57,125,209}, // blue 1
+           sf::Color{134,181,229}, // blue 0
+           sf::Color{211,236,248}, // lightest blue
+           sf::Color{241,233,191}, // lightest yellow
+           sf::Color{248,201, 95}, // light yellow
+           sf::Color{255,170,  0},   // dirty yellow
         };
 
-        const double value = ::scale<int, double>(i, 0, N, 0, mapping.size());
+        if(i == N) {
+            return {0,0,0};
+        }
+
+        const double value = i / double(palette_size);
         const int value_int = int(value);
-        const int colormap_begin = value_int % (mapping.size() - 1);
+        const int colormap_begin = value_int % (palette_size);
         const double factor = value - value_int;
 
-        return helper::lerp_color(mapping[colormap_begin],
-                                  mapping[colormap_begin + 1], factor);
+        if(colormap_begin < palette_size - 1) {
+            return helper::lerp_color(mapping[colormap_begin],
+                                      mapping[colormap_begin + 1], factor);
+        } else {
+            return helper::lerp_color(mapping[colormap_begin],
+                                      mapping[0], factor);
+        }
     }
 }
 
