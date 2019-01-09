@@ -3,28 +3,40 @@
 MainLoopHelper::MainLoopHelper(sf::RenderWindow *window)
 {
     this->window = window;
-    img = {{0, 0}, window->getSize()};
-    pane = {{-2.0, -1.5}, {2.0, 1.5}};
-    //renderer.set_palette(palette::grayscale);
-    //renderer.set_palette(custom_pallet_from_i);
-    renderer.set_palette(custom_pallet_relational);
-    texture.create(window->getSize().x, window->getSize().y);
-    sprite.setTexture(texture);
-    initialize_auxiliary_entities();
+    setDefaultValues();
+
+    initializeAuxillaryEntities();
 }
 
 MainLoopHelper::~MainLoopHelper()
 {
 }
 
-void MainLoopHelper::initialize_auxiliary_entities()
+void MainLoopHelper::setDefaultValues()
+{
+    //renderer.set_palette(palette::grayscale);
+    //renderer.set_palette(palette::blue_wave);
+    //renderer.set_palette(custom_pallet_from_i);
+    //renderer.set_palette(custom_pallet_relational);
+    renderer.set_palette(palette::ultra_fractal);
+
+    img = {{0, 0}, window->getSize()};
+    pane = {{-2.25, -1.5}, {1.5, 1.5}};
+
+    texture.create(window->getSize().x, window->getSize().y);
+    sprite.setTexture(texture);
+
+    currentIterationCount = 2048;
+}
+
+void MainLoopHelper::initializeAuxillaryEntities()
 {
     // Region rectangle initialization
-    region_selection_rect.setFillColor(sf::Color(0, 0, 0, 0));
-    region_selection_rect.setOutlineThickness(2.f);
-    region_selection_rect.setPosition({20, 20});
-    region_selection_rect.setSize({50, 50});
-    region_selection_rect.setOutlineColor(sf::Color::Yellow);
+    regionSelectionRect.setFillColor(sf::Color(0, 0, 0, 0));
+    regionSelectionRect.setOutlineThickness(2.f);
+    regionSelectionRect.setPosition({20, 20});
+    regionSelectionRect.setSize({50, 50});
+    regionSelectionRect.setOutlineColor(sf::Color::Yellow);
 }
 
 void MainLoopHelper::startMainLoop()
@@ -39,42 +51,40 @@ void MainLoopHelper::processFrame()
 {
     processEvents();
 
-    // render to image
-    // auto future = renderer.render_task_add(img, pane, 1000);
     if (UpdateImage)
     {
         UpdateImage = false;
-        // future = renderer.render_async(img, pane, 1000);
-        chunks_futur_list = runAsyncRender(split_image_to_chunks(img, pane, 6));
+        chunksFutureList = runAsyncRender(splitImagesToChunks(img, pane, 6));
         IsRenderFinished = false;
-    }
 
-    // wait until timeout
-    // future.wait_for(std::chrono::miliseconds(1000));
-    // renderer.cancel_all();
+        sf::Image clear_image;
+        clear_image.create(img.bottomright.x, img.bottomright.y);
+        texture.update(clear_image);
+    }
 
     if (!IsRenderFinished)
     {
-        bool renderState = true;
-        for (auto it = chunks_futur_list.begin(); it != chunks_futur_list.end(); it++)
+        auto it = chunksFutureList.begin();
+        while( it != chunksFutureList.end() )
         {
-            if (it->future.valid())
-                if (it->future.wait_for(std::chrono::milliseconds(1)) == std::future_status::ready)
-                    texture.update(it->future.get(), it->coords.x, it->coords.y);
-                else
-                    renderState = false;
-        }
-        IsRenderFinished = renderState;
-    }
+            if (it->future.wait_for(std::chrono::milliseconds(10))
+                    == std::future_status::ready) {
+                texture.update(it->future.get(), it->coords.x, it->coords.y);
 
-    // if (future.valid() &&
-    //     future.wait_for(std::chrono::milliseconds(1)) == std::future_status::ready)
-    //     texture.update(future.get());
+                // remove completed future from the list
+                it = chunksFutureList.erase(it);
+            } else {
+                ++it;
+            }
+        }
+        IsRenderFinished = chunksFutureList.empty();
+    }
 
     window->clear();
     window->draw(sprite);
+
     displayAuxiliaryEntities();
-    //window->draw(*region_selection_rect);
+
     window->display();
 }
 
@@ -95,7 +105,7 @@ void MainLoopHelper::processEvents()
             switch (event.key.code)
             {
             case sf::Mouse::Left:
-                togleRegionRect(true);
+                toggleRegionRect(true);
                 setDisplayRectStart(sf::Vector2f(event.mouseButton.x, event.mouseButton.y));
                 setDisplayRectEnd(sf::Vector2f(event.mouseButton.x, event.mouseButton.y));
                 break;
@@ -107,7 +117,7 @@ void MainLoopHelper::processEvents()
             switch (event.key.code)
             {
             case sf::Mouse::Left:
-                togleRegionRect(false);
+                toggleRegionRect(false);
                 addStateToStack(pane, !IsRenderFinished);
                 pane = scaleCoordinates(pane, img, getSelectedRegion());
                 cancelAllRender();
@@ -133,23 +143,29 @@ void MainLoopHelper::processEvents()
             if (isRegionDisplayed())
             {
                 //setDisplayRectEnd(sf::Vector2f(event.mouseMove.x, event.mouseMove.y));
-                auto pos = region_selection_rect.getPosition();
+                auto pos = regionSelectionRect.getPosition();
                 setDisplayRectEnd(
                     sf::Vector2f(
                         event.mouseMove.x,
                         pos.y + (event.mouseMove.x - pos.x) * wRatio));
             }
             break;
+        case sf::Event::Resized:
+            maxZoomOut();
+            break;
         }
     }
 }
 
-std::list<chunkFuture> MainLoopHelper::runAsyncRender(std::list<imgChunk> chunkList)
+std::list<chunkFuture> MainLoopHelper::runAsyncRender(const std::list<imgChunk> &chunkList)
 {
     std::list<chunkFuture> resList;
-    for (auto it = chunkList.begin(); it != chunkList.end(); it++)
+    for (const auto& chunk : chunkList)
     {
-        resList.emplace_back(it->img.topleft, renderer.render_async(it->img, it->pane, 5000));
+        resList.emplace_back(chunk.img.topleft,
+                             renderer.render_async(chunk.img,
+                                                   chunk.pane,
+                                                   currentIterationCount));
     }
     return resList;
 }
@@ -157,25 +173,27 @@ std::list<chunkFuture> MainLoopHelper::runAsyncRender(std::list<imgChunk> chunkL
 void MainLoopHelper::displayAuxiliaryEntities()
 {
     if (display_region_rect)
-        window->draw(region_selection_rect);
+        window->draw(regionSelectionRect);
 }
 
 void MainLoopHelper::setDisplayRectStart(sf::Vector2f pos)
 {
-    region_selection_rect.setPosition(pos);
+    regionSelectionRect.setPosition(pos);
 }
 
 void MainLoopHelper::setDisplayRectEnd(sf::Vector2f pos)
 {
-    auto rectPos = region_selection_rect.getPosition();
-    region_selection_rect.setSize({pos.x - rectPos.x, pos.y - rectPos.y});
+    auto rectPos = regionSelectionRect.getPosition();
+    regionSelectionRect.setSize({pos.x - rectPos.x, pos.y - rectPos.y});
 }
 
+// FIXME: handge 0-size and off-screen vector!
 Rectangle<unsigned int> MainLoopHelper::getSelectedRegion()
 {
     Rectangle<unsigned int> res;
-    auto pos = region_selection_rect.getPosition();
-    auto size = region_selection_rect.getSize();
+    auto pos = regionSelectionRect.getPosition();
+    auto size = regionSelectionRect.getSize();
+
     if (size.x >= 0)
     {
         res.topleft.x = pos.x;
@@ -197,10 +215,11 @@ Rectangle<unsigned int> MainLoopHelper::getSelectedRegion()
         res.topleft.y = pos.y + size.y;
         res.bottomright.y = pos.y;
     }
+
     return res;
 }
 
-void MainLoopHelper::togleRegionRect(bool state)
+void MainLoopHelper::toggleRegionRect(bool state)
 {
     display_region_rect = state;
 }
@@ -222,9 +241,9 @@ sf::Vector2<double> scaleDownVector(sf::Vector2<double> init, sf::Vector2u start
     return res;
 }
 
-Rectangle<double> scaleCoordinates(Rectangle<double> init,
-                                   Rectangle<unsigned int> img,
-                                   Rectangle<unsigned int> reg)
+Rectangle<double> scaleCoordinates(const Rectangle<double>& init,
+                                   const Rectangle<unsigned int>& img,
+                                   const Rectangle<unsigned int>& reg)
 {
     Rectangle<double> res;
     auto xVect = scaleDownVector({init.topleft.x, init.bottomright.x},
@@ -238,35 +257,66 @@ Rectangle<double> scaleCoordinates(Rectangle<double> init,
     return res;
 }
 
-std::list<imgChunk> MainLoopHelper::split_image_to_chunks(Rectangle<uint> img,
-                                                          Rectangle<double> pane,
-                                                          uint split_factor)
+std::list<imgChunk> MainLoopHelper::splitImagesToChunks(const Rectangle<uint>& img,
+                                                        const Rectangle<double>& pane,
+                                                        uint split_factor)
 {
     std::list<imgChunk> res;
     assert(split_factor > 0);
-    sf::Vector2u imgT = img.topleft;
-    sf::Vector2<double> paneT = pane.topleft;
+
     uint dx_img = img.bottomright.x - img.topleft.x;
     uint dy_img = img.bottomright.y - img.topleft.y;
+
     double dx_pane = pane.bottomright.x - pane.topleft.x;
     double dy_pane = pane.bottomright.y - pane.topleft.y;
+
+    uint split_width = dx_img / split_factor;
+    uint split_height = dy_img / split_factor;
+
+    double pane_split_width = dx_pane / double(split_factor);
+    double pane_split_height = dy_pane / double(split_factor);
+
+    imgChunk chunk;
     for (int i = 0; i < split_factor; i++)
     {
         for (int j = 0; j < split_factor; j++)
         {
-            imgChunk chunk;
-            chunk.img.topleft.x = imgT.x + dx_img * i / split_factor;
-            chunk.img.topleft.y = imgT.y + dy_img * j / split_factor;
-            chunk.img.bottomright.x = imgT.x + dx_img * (i + 1) / split_factor;
-            chunk.img.bottomright.y = imgT.y + dy_img * (j + 1) / split_factor;
+            if( i == 0 ) {
+                chunk.img.topleft.x = img.topleft.x;
+                chunk.pane.topleft.x = pane.topleft.x;
+            } else {
+                chunk.img.topleft.x = img.topleft.x + split_width * i;
+                chunk.pane.topleft.x = pane.topleft.x + pane_split_width * i;
+            }
 
-            chunk.pane.topleft.x = paneT.x + dx_pane * i / split_factor;
-            chunk.pane.topleft.y = paneT.y + dy_pane * j / split_factor;
-            chunk.pane.bottomright.x = paneT.x + dx_pane * (i + 1) / split_factor;
-            chunk.pane.bottomright.y = paneT.y + dy_pane * (j + 1) / split_factor;
+            if( j == 0 ) {
+                chunk.img.topleft.y = img.topleft.y;
+                chunk.pane.topleft.y = pane.topleft.y;
+            } else {
+                chunk.img.topleft.y = img.topleft.y + split_height * j;
+                chunk.pane.topleft.y = pane.topleft.y + pane_split_height * j;
+            }
+
+            if( i == split_factor ) {
+                chunk.img.bottomright.x = img.bottomright.x;
+                chunk.pane.bottomright.x = pane.bottomright.x;
+            } else {
+                chunk.img.bottomright.x = chunk.img.topleft.x + split_width;
+                chunk.pane.bottomright.x = chunk.pane.topleft.x + pane_split_width;
+            }
+
+            if( j == split_factor ) {
+                chunk.img.bottomright.y = img.bottomright.y;
+                chunk.pane.bottomright.y = pane.bottomright.y;
+            } else {
+                chunk.img.bottomright.y = chunk.img.topleft.y + split_height;
+                chunk.pane.bottomright.y = chunk.pane.topleft.y + pane_split_height;
+            }
+
             res.push_back(chunk);
         }
     }
+
     return res;
 }
 
@@ -298,8 +348,7 @@ bool MainLoopHelper::maxZoomOut()
         res = true;
         cancelAllRender();
     }
-    pane = {{-2.0, -1.5},
-            {2.0, 1.5}};
+    setDefaultValues();
     return res;
 }
 

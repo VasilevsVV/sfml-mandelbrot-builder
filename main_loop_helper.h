@@ -25,11 +25,11 @@ struct chunkFuture
 
   chunkFuture(const chunkFuture &) = delete;
   chunkFuture(chunkFuture &&cf)
-      : coords(std::move(cf.coords)), future(std::move(cf.future)){};
+      : coords(std::move(cf.coords)), future(std::move(cf.future)) {}
 
 public:
   chunkFuture(const sf::Vector2u &coords, std::future<sf::Image> &&future)
-      : future(std::move(future)), coords(coords) {}
+      : coords(coords), future(std::move(future)) {}
 };
 
 struct ZoomState
@@ -47,7 +47,11 @@ class MainLoopHelper
   bool display_region_rect = false;
   bool UpdateImage = true;
   bool IsRenderFinished = true;
-  sf::RectangleShape region_selection_rect;
+
+  static constexpr int iterationMagnificationCoeff = 128;
+  int currentIterationCount;
+
+  sf::RectangleShape regionSelectionRect;
   sf::RenderWindow *window;
 
   Renderer renderer;
@@ -59,35 +63,41 @@ class MainLoopHelper
   sf::Texture texture;
   sf::Sprite sprite;
 
-  std::future<sf::Image> future;
-  std::list<chunkFuture> chunks_futur_list;
+  std::list<chunkFuture> chunksFutureList;
 
-  void initialize_auxiliary_entities();
-  std::list<imgChunk> split_image_to_chunks(Rectangle<uint> img, Rectangle<double> pane, uint split_factor);
-  std::list<chunkFuture> runAsyncRender(std::list<imgChunk> chunkList);
+  void initializeAuxillaryEntities();
+  std::list<imgChunk> splitImagesToChunks(const Rectangle<uint>& img,
+                                          const Rectangle<double>& pane,
+                                          uint split_factor);
+  std::list<chunkFuture> runAsyncRender(const std::list<imgChunk>& chunkList);
 
   void addStateToStack(PaneCoords pane, bool update);
+
   bool zoomOut();
   bool maxZoomOut();
   bool cancelAllRender();
 
+  void setDefaultValues();
+
 public:
   MainLoopHelper(sf::RenderWindow *window);
   ~MainLoopHelper();
+
   void displayAuxiliaryEntities();
   void setDisplayRectStart(sf::Vector2f pos);
   void setDisplayRectEnd(sf::Vector2f pos);
   Rectangle<unsigned int> getSelectedRegion();
-  void togleRegionRect(bool state);
+  void toggleRegionRect(bool state);
+  bool isRegionDisplayed();
+
   void processFrame();
   void processEvents();
-  void startMainLoop();
 
-  bool isRegionDisplayed();
+  void startMainLoop();
 };
 
-Rectangle<double> scaleCoordinates(Rectangle<double> initialCoords,
-                                   Rectangle<unsigned int> imgCoorgs,
-                                   Rectangle<unsigned int> newRegion);
+Rectangle<double> scaleCoordinates(const Rectangle<double>& initialCoords,
+                                   const Rectangle<unsigned int>& imgCoorgs,
+                                   const Rectangle<unsigned int>& newRegion);
 
 #endif //HELPER_H

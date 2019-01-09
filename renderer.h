@@ -18,7 +18,12 @@ template <typename T_in, typename T_out>
 inline T_out scale(T_in x, T_in x_min, T_in x_max, T_out a, T_out b)
 {
     assert(x_min < x_max);
-    assert(a < b);
+    assert(a <= b);
+
+    if(a == b) {
+        return b;
+    }
+
     return T_out((b - a) * (x - x_min) / (x_max - x_min)) + a;
 }
 
@@ -43,6 +48,18 @@ inline T lerp(T v0, T v1, U t) {
 template <typename T>
 struct Rectangle {
     sf::Vector2<T> topleft, bottomright;
+
+    T width() const {
+        return bottomright.x - topleft.x;
+    }
+
+    T height() const {
+        return bottomright.y - topleft.y;
+    }
+
+    T perimeter() const {
+        return (width() + height()) * 2;
+    }
 };
 
 //!  PalleteFn: a callable with a signature of sf::Color(int i, int N)
@@ -81,6 +98,32 @@ inline sf::Color lerp_color(sf::Color a, sf::Color b, double factor) {
 
     }
 
+    inline sf::Color blue_wave(const int i, const int N) {
+        constexpr int palette_size = 4;
+        const static std::array<sf::Color, palette_size> mapping {
+           sf::Color{9,1,47},
+           sf::Color{0,7,100},
+           sf::Color{134, 181, 229},
+           sf::Color{255, 255, 255},
+        };
+
+        if( i == N ) return {0, 0, 0};
+
+        const double value = i / double(palette_size);
+        const int value_int = int(value);
+        const int colormap_begin = value_int % (palette_size);
+        const double factor = value - value_int;
+
+        if(colormap_begin < palette_size - 1) {
+            return helper::lerp_color(mapping[colormap_begin],
+                                      mapping[colormap_begin + 1], factor);
+        } else {
+            return helper::lerp_color(mapping[colormap_begin],
+                                      mapping[0], factor);
+        }
+
+    }
+
     inline sf::Color ultra_fractal(const int i, const int N) {
         // Ultra Fractal palette
         constexpr int palette_size = 13;//16;
@@ -100,9 +143,7 @@ inline sf::Color lerp_color(sf::Color a, sf::Color b, double factor) {
            sf::Color{255,170,  0},   // dirty yellow
         };
 
-        if(i == N) {
-            return {0,0,0};
-        }
+        if( i == N ) return {0, 0, 0};
 
         const double value = i / double(palette_size);
         const int value_int = int(value);
@@ -167,10 +208,21 @@ protected:
         PaneCoordT var_x_squared = 0, var_y_squared = 0;
 
         int i = 0;
-        while( var_x_squared + var_y_squared < 4 && i < N) {
-            auto x_temp = var_x_squared - var_y_squared + x;
-            auto y_temp = 2 * var_x * var_y + y;
 
+        // cardioid check
+        double q = (x * x - x / 2. + 1 / 16.) + y * y;
+        if (q * (q + (x - 1 / 4.)) < (y * y / 4.)) {
+            i = N;
+        }
+
+        while( var_x_squared + var_y_squared < 4 && i < N) {
+            auto y_temp = var_x * var_y;
+            y_temp += y_temp; // multiply by 2
+            y_temp += y;
+
+            auto x_temp = var_x_squared - var_y_squared + x;
+
+            // periodic check
             if (var_x == x_temp && var_y == y_temp) {
                   i = N;
                   break;
@@ -208,36 +260,57 @@ protected:
 
         sf::Image new_image;
         new_image.create(img_max_x - img_min_x,
-                         img_max_y - img_min_y);
+                         img_max_y - img_min_y,
+                         _palette(N, N));
 
         for(auto world_img_x = img_min_x;
             world_img_x < img_max_x; ++world_img_x)
         {
+            // save some unnesessary checks
+            if(!_is_rendering) {
+                return new_image;
+            }
+
             for(auto world_img_y = img_min_y;
                 world_img_y < img_max_y; ++world_img_y)
             {
-                // set mandelbrot value
+                // calc mandelbrot color
                 PaneCoordT pane_x = ::scale(world_img_x, img_min_x, img_max_x,
                                             pane_min_x, pane_max_x);
                 PaneCoordT pane_y = ::scale(world_img_y, img_min_y, img_max_y,
                                             pane_min_y, pane_max_y);
 
-                sf::Color color = get_color_for_coord(pane_x, pane_y, N);
+                // supersampling
+#ifdef USE_SUPERSAMPLING
+                constexpr int supersampling = 8;
+                std::array<sf::Color, supersampling> sampled_colors;
+                uint avg_r = 0, avg_g = 0, avg_b = 0;
+
+                for(int i = 0; i < supersampling; ++i) {
+                    auto x0 = lerp(pane_x - 0.5, pane_x + 0.5, 1 / static_cast<double>(rand()));;
+                    auto y0 = lerp(pane_y - 0.5, pane_y + 0.5, 1 / static_cast<double>(rand()));
+
+                    sampled_colors[i] = get_color_for_coord(x0, y0, N);
+                }
+
+                for(const auto& color : sampled_colors) {
+                    avg_r += color.r;
+                    avg_g += color.g;
+                    avg_b += color.b;
+                }
+
                 new_image.setPixel(world_img_x - img_min_x,
                                    world_img_y - img_min_y,
-                                   color);
-            }
-
-            // save some unnesessary checks
-            if(!_is_rendering) {
-                sf::Image blank_image;
-                new_image.create(img_max_x - img_min_x,
-                                 img_max_y - img_min_y);
-
-                return blank_image;
+                                  { sf::Uint8(avg_r / supersampling),
+                                    sf::Uint8(avg_g / supersampling),
+                                    sf::Uint8(avg_b / supersampling) });
+#else
+                new_image.setPixel(world_img_x - img_min_x,
+                                   world_img_y - img_min_y,
+                                   get_color_for_coord(pane_x, pane_y, N));
+#endif
             }
         }
-
         return new_image;
     }
 };
