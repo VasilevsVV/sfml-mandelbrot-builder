@@ -18,6 +18,7 @@ set(EXECUTABLE_SOURCE
     main.cpp
     main_loop_helper.cpp
     main_loop_helper.h
+    big_int.h
     ctpl_stl.h
     )
 
